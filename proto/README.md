@@ -1,5 +1,13 @@
-# 1\. 파일이 위치한 폴더로 이동 (예: 다운로드 폴더) cd \~/Downloads 
+# 실행 방법
 
-# 2\. 자바 파일 컴파일 javac -encoding UTF-8 ComplaintSystemPrototype.java 
+1. 프로젝트 폴더로 이동
+   ```bash
+   cd ~/Desktop/java
+   
+2. 컴파일
+   ```bash
+   javac -encoding UTF-8 proto/ComplaintSystemPrototype.java
 
-# 3\. GUI 프로그램 실행 java ComplaintSystemPrototype
+3. 실행
+   ```
+   java proto.ComplaintSystemPrototype
