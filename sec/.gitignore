@@ -1,0 +1,7 @@
+*.class
+*.jar
+*.log
+keystore/
+.env
+.env.*
+config/application-secret.properties
