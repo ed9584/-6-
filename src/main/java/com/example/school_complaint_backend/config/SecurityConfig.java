@@ -1,22 +1,30 @@
+
 package com.example.school_complaint_backend.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.config.Customizer;
+
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.util.Base64;
@@ -69,7 +77,7 @@ public class SecurityConfig {
             UserDetailsService userDetailsService,
             PasswordEncoder passwordEncoder
     ) {
-
+        System.out.println("현재 SecurityConfig 실행됨!");
         DaoAuthenticationProvider authenticationProvider =
                 new DaoAuthenticationProvider(userDetailsService);
 
@@ -78,21 +86,58 @@ public class SecurityConfig {
         return new ProviderManager(authenticationProvider);
     }
 
+    // JWT의 role 값을 Spring Security 권한으로 변환
+    @Bean
+    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+
+        JwtGrantedAuthoritiesConverter authoritiesConverter =
+                new JwtGrantedAuthoritiesConverter();
+
+        // JWT에서 role이라는 항목을 읽도록 설정
+        authoritiesConverter.setAuthoritiesClaimName("role");
+
+        // ADMIN을 ROLE_ADMIN으로 변환
+        authoritiesConverter.setAuthorityPrefix("ROLE_");
+
+        JwtAuthenticationConverter converter =
+                new JwtAuthenticationConverter();
+
+        converter.setJwtGrantedAuthoritiesConverter(authoritiesConverter);
+
+        return converter;
+    }
+
     // Spring Security 설정
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            JwtAuthenticationConverter jwtAuthenticationConverter
+    ) throws Exception {
 
         http
                 .csrf(csrf -> csrf.disable())
+
                 .authorizeHttpRequests(auth -> auth
+
+                        // 회원가입과 로그인은 누구나 접근 가능
                         .requestMatchers(
                                 "/api/users/signup",
                                 "/api/users/login"
                         ).permitAll()
+
+                        // 관리자 API는 관리자만 접근 가능
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+                        // 나머지 API는 로그인한 사용자만 접근 가능
                         .anyRequest().authenticated()
                 )
+
                 .oauth2ResourceServer(oauth2 ->
-                    oauth2.jwt(Customizer.withDefaults())
+                        oauth2.jwt(jwt ->
+                                jwt.jwtAuthenticationConverter(
+                                        jwtAuthenticationConverter
+                                )
+                        )
                 );
 
         return http.build();

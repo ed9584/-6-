@@ -1,47 +1,52 @@
 package com.example.school_complaint_backend.controller;
 
+import com.example.school_complaint_backend.dto.request.LoginRequest;
 import com.example.school_complaint_backend.dto.request.SignupRequest;
-import com.example.school_complaint_backend.dto.response.UserResponse;
-import com.example.school_complaint_backend.entity.User;
+import com.example.school_complaint_backend.dto.response.LoginResponse;
 import com.example.school_complaint_backend.service.UserService;
 import org.springframework.web.bind.annotation.*;
-import com.example.school_complaint_backend.dto.request.LoginRequest;
-import com.example.school_complaint_backend.dto.response.LoginResponse;
-import com.example.school_complaint_backend.security.JwtService;
+import jakarta.annotation.PostConstruct;
 
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
+        @PostConstruct
+public void init() {
+    System.out.println("UserController 실행됨!");
+}
     private final UserService userService;
-    private final JwtService jwtService;
 
-    public UserController(
-        UserService userService,
-        JwtService jwtService
-    ) {
-    this.userService = userService;
-    this.jwtService = jwtService;
+    public UserController(UserService userService) {
+        this.userService = userService;
     }
 
+    // 회원가입
     @PostMapping("/signup")
-    public UserResponse signup(@RequestBody SignupRequest request) {
-        User user = userService.signup(request);
-        return new UserResponse(user);
+    public void signup(
+            @RequestBody SignupRequest request
+    ) {
+        userService.signup(
+                request.getStudentId(),
+                request.getPassword(),
+                request.getName()
+        );
     }
+
+    // 로그인
     @PostMapping("/login")
-public LoginResponse login(@RequestBody LoginRequest request) {
+    public LoginResponse login(
+            @RequestBody LoginRequest request
+    ) 
+    {
+        System.out.println("로그인 요청 도착!");
+        String token = userService.login(
+                request.getStudentId(),
+                request.getPassword()
+        );
 
-    User user = userService.login(
-            request.getUsername(),
-            request.getPassword()
-    );
-
-    String token = jwtService.createToken(user);
-
-    return new LoginResponse(
-            user.getUsername(),
-            user.getRole().name(),
-            token
-    );
+        return new LoginResponse(
+                request.getStudentId(),
+                token
+        );
     }
 }

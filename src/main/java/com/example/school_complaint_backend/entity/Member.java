@@ -1,49 +1,50 @@
 package com.example.school_complaint_backend.entity;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users")
-public class User {
+@Table(name = "member")
+public class Member {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "member_id")
+    private Integer memberId;
 
-    @Column(nullable = false, unique = true)
-    private String username;
+    @Column(name = "student_id", nullable = false, unique = true, length = 20)
+    private String studentId;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 255)
     private String password;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 50)
     private String name;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private Role role;
 
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
-
-    protected User() {
+    protected Member() {
     }
 
-    public User(String username, String password, String name, Role role) {
-        this.username = username;
+    public Member(
+            String studentId,
+            String password,
+            String name,
+            Role role
+    ) {
+        this.studentId = studentId;
         this.password = password;
         this.name = name;
         this.role = role;
-        this.createdAt = LocalDateTime.now();
     }
 
-    public Long getId() {
-        return id;
+    public Integer getMemberId() {
+        return memberId;
     }
 
-    public String getUsername() {
-        return username;
+    public String getStudentId() {
+        return studentId;
     }
 
     public String getPassword() {
@@ -56,9 +57,5 @@ public class User {
 
     public Role getRole() {
         return role;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
     }
 }

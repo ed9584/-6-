@@ -2,22 +2,16 @@ package com.example.school_complaint_backend.dto.response;
 
 public class LoginResponse {
 
-    private String username;
-    private String role;
+    private String studentId;
     private String token;
 
-    public LoginResponse(String username, String role, String token) {
-        this.username = username;
-        this.role = role;
+    public LoginResponse(String studentId, String token) {
+        this.studentId = studentId;
         this.token = token;
     }
 
-    public String getUsername() {
-        return username;
-    }
-
-    public String getRole() {
-        return role;
+    public String getStudentId() {
+        return studentId;
     }
 
     public String getToken() {

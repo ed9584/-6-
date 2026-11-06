@@ -1,55 +1,76 @@
 package com.example.school_complaint_backend.service;
 
+import com.example.school_complaint_backend.entity.Member;
+import com.example.school_complaint_backend.entity.Role;
+import com.example.school_complaint_backend.repository.MemberRepository;
+import com.example.school_complaint_backend.security.JwtService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import com.example.school_complaint_backend.dto.request.SignupRequest;
-import com.example.school_complaint_backend.entity.Role;
-import com.example.school_complaint_backend.entity.User;
-import com.example.school_complaint_backend.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import com.example.school_complaint_backend.security.JwtService;
 
 @Service
 public class UserService {
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
+    private final MemberRepository memberRepository;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final PasswordEncoder passwordEncoder;
 
     public UserService(
-        UserRepository userRepository,
-        PasswordEncoder passwordEncoder,
-        AuthenticationManager authenticationManager,
-        JwtService jwtService
+            MemberRepository memberRepository,
+            AuthenticationManager authenticationManager,
+            JwtService jwtService,
+            PasswordEncoder passwordEncoder
     ) {
-    this.userRepository = userRepository;
-    this.passwordEncoder = passwordEncoder;
-    this.authenticationManager = authenticationManager;
-    this.jwtService = jwtService;
+        this.memberRepository = memberRepository;
+        this.authenticationManager = authenticationManager;
+        this.jwtService = jwtService;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    public User signup(SignupRequest request) {
+    // 회원가입
+    public void signup(
+            String studentId,
+            String password,
+            String name
+    ) {
+        if (memberRepository.findByStudentId(studentId).isPresent()) {
+            throw new IllegalArgumentException(
+                    "이미 존재하는 학번입니다."
+            );
+        }
 
-        String encodedPassword = passwordEncoder.encode(request.getPassword());
+        String encodedPassword =
+                passwordEncoder.encode(password);
 
-        User user = new User(
-                request.getUsername(),
+        Member member = new Member(
+                studentId,
                 encodedPassword,
-                request.getName(),
-                Role.USER
+                name,
+                Role.STUDENT
         );
 
-        return userRepository.save(user);
+        memberRepository.save(member);
     }
-    public User login(String username, String password) {
 
-    authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(username, password)
-    );
+    // 로그인
+    public String login(String studentId, String password) {
 
-    return userRepository.findByUsername(username)
-            .orElseThrow();
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        studentId,
+                        password
+                )
+        );
+
+        Member member = memberRepository.findByStudentId(studentId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "회원을 찾을 수 없습니다."
+                        )
+                );
+
+        return jwtService.createToken(member);
     }
 }

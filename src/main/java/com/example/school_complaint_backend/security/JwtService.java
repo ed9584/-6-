@@ -1,6 +1,6 @@
 package com.example.school_complaint_backend.security;
 
-import com.example.school_complaint_backend.entity.User;
+import com.example.school_complaint_backend.entity.Member;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
@@ -23,13 +23,13 @@ public class JwtService {
         this.jwtEncoder = jwtEncoder;
     }
 
-    public String createToken(User user) {
+    public String createToken(Member member) {
 
         Instant now = Instant.now();
 
         JwtClaimsSet claims = JwtClaimsSet.builder()
-                .subject(user.getUsername())
-                .claim("role", user.getRole().name())
+                .subject(member.getStudentId())
+                .claim("role", member.getRole().name())
                 .issuedAt(now)
                 .expiresAt(now.plusMillis(expiration))
                 .build();

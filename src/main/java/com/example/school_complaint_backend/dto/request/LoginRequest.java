@@ -2,15 +2,15 @@ package com.example.school_complaint_backend.dto.request;
 
 public class LoginRequest {
 
-    private String username;
+    private String studentId;
     private String password;
 
-    public String getUsername() {
-        return username;
+    public String getStudentId() {
+        return studentId;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setStudentId(String studentId) {
+        this.studentId = studentId;
     }
 
     public String getPassword() {
