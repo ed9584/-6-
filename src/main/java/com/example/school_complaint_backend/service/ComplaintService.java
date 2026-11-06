@@ -1,20 +1,26 @@
+
 package com.example.school_complaint_backend.service;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
+
 import com.example.school_complaint_backend.dto.request.ComplaintCreateRequest;
+import com.example.school_complaint_backend.dto.request.ComplaintUpdateRequest;
+
 import com.example.school_complaint_backend.entity.Complaint;
-import com.example.school_complaint_backend.entity.Member;
 import com.example.school_complaint_backend.entity.ComplaintImage;
+import com.example.school_complaint_backend.entity.ComplaintStatus;
+import com.example.school_complaint_backend.entity.Member;
+
 import com.example.school_complaint_backend.repository.ComplaintRepository;
 import com.example.school_complaint_backend.repository.MemberRepository;
 import com.example.school_complaint_backend.repository.ComplaintImageRepository;
+import com.example.school_complaint_backend.repository.SympathyRepository;
+
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import com.example.school_complaint_backend.dto.request.ComplaintUpdateRequest;
-
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,17 +32,20 @@ public class ComplaintService {
     private final MemberRepository userRepository;
     private final ComplaintImageRepository complaintImageRepository;
     private final FileStorageService fileStorageService;
+    private final SympathyRepository sympathyRepository;
 
     public ComplaintService(
             ComplaintRepository complaintRepository,
             MemberRepository userRepository,
             ComplaintImageRepository complaintImageRepository,
-            FileStorageService fileStorageService
+            FileStorageService fileStorageService,
+            SympathyRepository sympathyRepository
     ) {
         this.complaintRepository = complaintRepository;
         this.userRepository = userRepository;
         this.complaintImageRepository = complaintImageRepository;
         this.fileStorageService = fileStorageService;
+        this.sympathyRepository = sympathyRepository;
     }
 
     // 민원 등록
@@ -68,64 +77,107 @@ public class ComplaintService {
     }
 
     // 민원 상세 조회
-     public Complaint getComplaint(Long id) {
-         return complaintRepository.findById(id)
+    public Complaint getComplaint(Long id) {
+        return complaintRepository.findById(id)
                 .orElseThrow(() ->
-                    new ResponseStatusException(
-                            HttpStatus.NOT_FOUND,
-                            "민원을 찾을 수 없습니다."
-                    )
-            );
-        }
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "민원을 찾을 수 없습니다."
+                        )
+                );
+    }
+
     // 내 민원 조회
     public List<Complaint> getMyComplaints(String studentId) {
         return complaintRepository
                 .findByUser_StudentIdOrderByCreatedAtDesc(studentId);
     }
-        // 민원 수정
-        @Transactional
-        public Complaint updateComplaint(
-                Long complaintId,
-                ComplaintUpdateRequest request,
-                String studentId
-        ) {
+
+    // 민원 수정
+    @Transactional
+    public Complaint updateComplaint(
+            Long complaintId,
+            ComplaintUpdateRequest request,
+            String studentId
+    ) {
         Complaint complaint = complaintRepository.findById(complaintId)
-            .orElseThrow(() ->
-                    new IllegalArgumentException("민원을 찾을 수 없습니다.")
-            );
+                .orElseThrow(() ->
+                        new IllegalArgumentException("민원을 찾을 수 없습니다.")
+                );
 
         if (!complaint.getUser().getStudentId().equals(studentId)) {
-                throw new AccessDeniedException(
-                        "본인이 작성한 민원만 수정할 수 있습니다."
-        );
-    }
-
-    complaint.update(
-            request.getTitle(),
-            request.getContent(),
-            request.getCategory()
-    );
-
-    return complaint;
-}
-@Transactional
-public void deleteComplaint(
-        Long complaintId,
-        String studentId
-) {
-    Complaint complaint = complaintRepository.findById(complaintId)
-            .orElseThrow(() ->
-                    new IllegalArgumentException("민원을 찾을 수 없습니다.")
+            throw new AccessDeniedException(
+                    "본인이 작성한 민원만 수정할 수 있습니다."
             );
+        }
 
-    if (!complaint.getUser().getStudentId().equals(studentId)) {
-        throw new AccessDeniedException(
-                "본인이 작성한 민원만 삭제할 수 있습니다."
+        complaint.update(
+                request.getTitle(),
+                request.getContent(),
+                request.getCategory()
         );
+
+        return complaint;
     }
 
-    complaintRepository.delete(complaint);
-}
+    // 학생 민원 삭제
+    @Transactional
+    public void deleteComplaint(
+            Long complaintId,
+            String studentId
+    ) {
+        Complaint complaint = complaintRepository.findById(complaintId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("민원을 찾을 수 없습니다.")
+                );
+
+        if (!complaint.getUser().getStudentId().equals(studentId)) {
+            throw new AccessDeniedException(
+                    "본인이 작성한 민원만 삭제할 수 있습니다."
+            );
+        }
+
+        complaintRepository.delete(complaint);
+    }
+
+    // 관리자 민원 삭제
+    @Transactional
+    public void adminDeleteComplaint(Long complaintId) {
+
+        Complaint complaint = complaintRepository.findById(complaintId)
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "민원을 찾을 수 없습니다."
+                        )
+                );
+
+        // 해당 민원의 공감 데이터 전체 삭제
+        sympathyRepository.deleteByComplaint_Id(complaintId);
+
+        // 민원 삭제
+        complaintRepository.delete(complaint);
+    }
+
+    // 관리자 민원 상태 변경
+    @Transactional
+    public Complaint adminChangeStatus(
+            Long complaintId,
+            ComplaintStatus status
+    ) {
+        Complaint complaint = complaintRepository.findById(complaintId)
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "민원을 찾을 수 없습니다."
+                        )
+                );
+
+        complaint.changeStatus(status);
+
+        return complaint;
+    }
+
     // 민원 사진 업로드
     @Transactional
     public List<ComplaintImage> uploadImages(
@@ -183,4 +235,3 @@ public void deleteComplaint(
         return images;
     }
 }
-
